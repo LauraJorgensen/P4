@@ -49,6 +49,7 @@ def reshape(array):
 def scramble(signal):
     spectrum = np.fft.fft(signal)
 
+    np.random.seed(42)  
     permutation_idx = np.random.permutation(N)
     P = np.eye(N)[permutation_idx]
     scrampled_spectrum = P @ spectrum

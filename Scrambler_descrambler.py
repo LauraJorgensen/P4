@@ -13,18 +13,19 @@ from scipy.signal import spectrogram
 import os
 from datetime import datetime
 
-filename = 'DT2_Danish_Speech_L15_S5.wav'
+filename = 'sentences/DT2_Danish_Speech_L6_S1.wav'
 background_noise_filename = 'Noise_fredagsbar.wav'
 
-N = 2**5
-M_LP = 400
-M_BP = 400
-f_c_1 = 200
-f_c_2 = 3500
+N = 2**11
+M_LP = 270
+M_BP = 300
+f_c_1 = 300
+f_c_2 = 3400
 
 timestamp = datetime.now().strftime("%H%M%S")
 base_name = os.path.splitext(os.path.basename(filename))[0]
-OUTPUT_DIR = f"Results_{base_name}_{timestamp}"
+OUTPUT_DIR = f"F_{N}"
+#OUTPUT_DIR = f"ResultsF_{base_name}_{timestamp}"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def load_data(filename):
@@ -47,25 +48,33 @@ def reshape(array):
     return audio_data_matrix, pad_length
 
 def scramble(signal):
-    spectrum = np.fft.fft(signal)
-
+    spectrum = np.fft.fft(signal, axis=0)
+    
     np.random.seed(42)  
     permutation_idx = np.random.permutation(N)
     P = np.eye(N)[permutation_idx]
     scrampled_spectrum = P @ spectrum
 
-    scrampled_signal = np.fft.ifft(scrampled_spectrum).flatten('F').real
+    scrampled_signal = np.fft.ifft(scrampled_spectrum, axis=0).flatten('F').real
     
     return scrampled_signal, P
 
+
+def reverse_scramble(signal_matrix):
+    spectrum = np.fft.fft(signal_matrix, axis=0)
+    reversed_spectrum = np.fft.fftshift(spectrum, axes=0)
+    signal_out = np.fft.ifft(reversed_spectrum, axis=0).real
+    return signal_out.flatten('F')
+
+
 def descramble(scrampled_signal, P, pad_length):
     scrampled_signal_matrix = scrampled_signal.reshape(-1, N).T
-    spectrum_scrampled_signal = np.fft.fft(scrampled_signal_matrix)
+    spectrum_scrampled_signal = np.fft.fft(scrampled_signal_matrix, axis=0)
 
     inverse_permutation = P.T
     spectrum_descrampled_signal = inverse_permutation @ spectrum_scrampled_signal
 
-    descrambled_signal = np.fft.ifft(spectrum_descrampled_signal).flatten('F').real
+    descrambled_signal = np.fft.ifft(spectrum_descrampled_signal, axis=0).flatten('F').real
 
     descrambled_signal  = descrambled_signal[:-pad_length]
     
@@ -76,7 +85,7 @@ def add_background_noise(signal, noise_filename):
     
     noise = noise[:len(signal)]
 
-    signal_noisy = signal + noise*0.1
+    signal_noisy = signal + noise*0.05
     signal_noisy = np.clip(signal_noisy, -32768, 32767).astype(np.int16)
 
     return signal_noisy
@@ -111,11 +120,6 @@ def bandpass_filter(M, f_c_1, f_c_2, f_s):
     h = h_d * w
     return h
 
-# def add_gaussian_noise(signal, standard_deviation):
-#     noise = np.random.normal(0, standard_deviation, size=signal.shape)
-#     noisy_signal = signal + noise
-#     return noisy_signal
-
 def add_gaussian_noise(signal, snr_db):
     rms = np.sqrt(np.mean(signal**2))
     
@@ -131,16 +135,16 @@ def add_gaussian_noise(signal, snr_db):
 
 
 def plot_spectrogram(signal, fs, title):
-    f, t, Sxx = spectrogram(signal, fs, nperseg=256)
-    plt.figure(figsize=(10, 4))
-    plt.pcolormesh(t, f, 20 * np.log10(Sxx), shading='auto', cmap='viridis')
+    f, t, Sxx = spectrogram(signal, fs, nperseg=N)
+    plt.figure(figsize=(10, 4), dpi=400)
+    plt.pcolormesh(t, f, 20 * np.log10(Sxx), shading='nearest', cmap='viridis',vmin=-100, vmax=50)
     plt.colorbar() #label='Amplitude [dB]'
-    plt.ylabel('Frequency [Hz]')
-    plt.xlabel('Time [s]')
-    plt.title(title)
+    plt.ylabel('Frequency [Hz]', fontsize=14)
+    plt.xlabel('Time [s]',fontsize=14)
+    #plt.title(title)
     plt.tight_layout()
     safe_title = title.replace(" ", "_")
-    plt.savefig(os.path.join(OUTPUT_DIR, f"{safe_title}.pdf"))
+    plt.savefig(os.path.join(OUTPUT_DIR, f"{safe_title}.png"))
     plt.show()
 
 def main_noisy(tal):
@@ -154,37 +158,59 @@ def main_noisy(tal):
     
     audio_data_matrix, pad_length = reshape(audio_data_filtered)
     scrampled_signal, P = scramble(audio_data_matrix)
-    convert_to_wav(scrampled_signal, f'{tal}_scrampled_signal.wav', audio_data, sample_freq)
 
-    scrampled_signal_noisy = add_gaussian_noise(scrampled_signal, 0.0001) 
+    scrampled_signal_noisy = add_gaussian_noise(scrampled_signal, 20) 
+    convert_to_wav(scrampled_signal_noisy, f'{tal}_scrampled_signal.wav', audio_data, sample_freq)
 
     descrambled_signal_noisy = descramble(scrampled_signal_noisy, P, pad_length)
-    convert_to_wav(descrambled_signal_noisy, f'{tal}_descrambled_signal_noisy.wav', audio_data, sample_freq)
+    # convert_to_wav(descrambled_signal_noisy, f'{tal}_descrambled_signal_noisy.wav', audio_data, sample_freq)
     
     descrambled_signal_filteret = np.convolve(descrambled_signal_noisy, h_LP)
     convert_to_wav(descrambled_signal_filteret, f'{tal}_descrambled_signal_filter.wav', audio_data, sample_freq)
 
-    plot_spectrogram(audio_data, sample_freq, "Original signal")
-    # plot_spectrogram(audio_data_noisy, sample_freq, "Original signal with noise")
-    # plot_spectrogram(audio_data_filtered, sample_freq, "Original signal filtered")
-    # plot_spectrogram(scrampled_signal, sample_freq, "Scrambled signal")
+    # plot_spectrogram(audio_data, sample_freq, "Original signal")
+    plot_spectrogram(audio_data_noisy, sample_freq, "Original signal with noise")
+    plot_spectrogram(audio_data_filtered, sample_freq, "Original signal filtered")
+    plot_spectrogram(scrampled_signal_noisy, sample_freq, "Scrambled signal with noise")
     # plot_spectrogram(descrambled_signal_noisy, sample_freq, "Descrambled signal with noise")
-    # plot_spectrogram(descrambled_signal_filteret, sample_freq, "Descrambled signal filtered")
-    
+    plot_spectrogram(descrambled_signal_filteret, sample_freq, "Descrambled signal filtered")
     
 def main_clean(tal):
     sample_freq, audio_data = load_data(filename)
     
     audio_data_matrix, pad_length = reshape(audio_data)
     scrampled_signal, P = scramble(audio_data_matrix)
+    #inverse_signal = inverse(audio_data_matrix)
+    #rev = reverse_scramble(audio_data_matrix)
     convert_to_wav(scrampled_signal, f'{tal}_scrampled_signal.wav', audio_data, sample_freq)
-
+    
     descrambled_signal = descramble(scrampled_signal, P, pad_length)
     convert_to_wav(descrambled_signal, f'{tal}_descrambled_signal.wav', audio_data, sample_freq)
     
-    plot_spectrogram(audio_data, sample_freq, "Original signal")
-    plot_spectrogram(scrampled_signal, sample_freq, "Scrambled signal")
-    plot_spectrogram(descrambled_signal, sample_freq, "Descrambled signal filtered")
+    # plot_spectrogram(audio_data, sample_freq, "Original signal")
+    # plot_spectrogram(scrampled_signal, sample_freq, "Scrambled signal")
+    # plot_spectrogram(rev, sample_freq, "Inverse signal")
+    # plot_spectrogram(descrambled_signal, sample_freq, "Descrambled signal filtered")
     
-main_noisy(3)
+def main_filter(tal):
+    sample_freq, audio_data = load_data(filename)
 
+    h_BP = bandpass_filter(M_BP, f_c_1, f_c_2, sample_freq)
+    h_LP = lowpass_filter(M_LP, f_c_2, sample_freq)
+    
+    audio_data_filtered = np.convolve(audio_data, h_BP)
+    
+    audio_data_matrix, pad_length = reshape(audio_data_filtered)
+    scrampled_signal, P = scramble(audio_data_matrix)
+
+    convert_to_wav(scrampled_signal, f'{tal}_scrampled_signal.wav', audio_data, sample_freq)
+
+    descrambled_signal_noisy = descramble(scrampled_signal, P, pad_length)
+    # convert_to_wav(descrambled_signal_noisy, f'{tal}_descrambled_signal_noisy.wav', audio_data, sample_freq)
+    
+    descrambled_signal_filteret = np.convolve(descrambled_signal_noisy, h_LP)
+    convert_to_wav(descrambled_signal_filteret, f'{tal}_descrambled_signal_filter.wav', audio_data, sample_freq)
+
+    
+main_filter(3)
+#main_noisy(3)

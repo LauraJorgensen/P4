@@ -10,9 +10,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # --- Parametre ---
-M = 250
+M = 100
 f_s = 44100  # Normeret samplingsfrekvens, dvs. pi svarer til 1
-f_c_lp = 3500  # Lavpas cutoff (normeret)
+f_c_lp = 3400  # Lavpas cutoff (normeret)
 f_c1_bp = 200  # Båndpas laveste cutoff
 f_c2_bp = 3500  # Båndpas højeste cutoff
 
@@ -86,15 +86,17 @@ plt.show()
 # --- Plot: Båndpas filter ---
 plt.figure(figsize=(6, 4), dpi=300)
 plt.plot(omega, BP_dtft, label='Bandpass Filter')
-plt.plot(2*np.pi*0/f_s,-30, '+')
-plt.plot(2*np.pi*300/f_s,-0.5, '+')
-plt.plot(2*np.pi*3250/f_s,-0.5, '+')
-plt.plot(2*np.pi*3800/f_s,-30, '+')
+plt.plot(2*np.pi*150/f_s,-20, '+')
+plt.plot(2*np.pi*500/f_s,-0.5, '+')
+plt.plot(2*np.pi*3200/f_s,-0.5, '+')
+plt.plot(2*np.pi*3800/f_s,-40, '+')
+plt.ylim(-45, 5)
+plt.xlim(0, 0.6)
 #plt.title('Bandpass Filter Amplituderespons')
 plt.xlabel('Frequency [rad]')
 plt.ylabel('Magnitude [dB]')
 plt.grid(True, which='both', linewidth=0.5)
-plt.ylim(-100, 5)
-plt.xlim(0, np.pi)
-plt.savefig(f'bandpass_response_M_{M}.pdf')
+# plt.ylim(-100, 5)
+# plt.xlim(0, np.pi)
+plt.savefig(f'Nbandpass_response_M_{M}.pdf')
 plt.show()

@@ -1,19 +1,13 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Apr  8 13:59:04 2025
 
-@author: laurajorgensen
-"""
-
+# --- Importer nødvendige pakker ---
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Antal samples og akse
+# --- Parametre
 M = 50
 n = np.arange(M + 1)
 
-# Vinduesfunktioner
+# --- Vinduesfunktioner ---
 hann = np.hanning(M + 1)
 bartlett = np.bartlett(M + 1)
 rectangular = np.ones(M + 1)
@@ -33,11 +27,11 @@ plt.grid(True, which='both', linewidth=0.5)
 plt.savefig('filter_design_techniques.pdf')
 plt.show()
 
-# --- Plot: DTFT (FFT af vinduer) ---
+# --- Udregning af DTFT (med forskellige vinduer) ---
 N_fft = 4096
 w = np.linspace(0, np.pi, N_fft//2)
 
-# FFT 
+
 def compute_dtft(window):
     W_fft = np.fft.fft(window, N_fft)
     W_fft /= np.max(np.abs(W_fft))
@@ -47,7 +41,7 @@ Hann_dtft = compute_dtft(hann)
 Bartlett_dtft = compute_dtft(bartlett)
 Rectangular_dtft = compute_dtft(rectangular)
 
-# Plot DTFT
+# --- Plot DTFT ---
 plt.figure(figsize=(6, 4), dpi=300)
 plt.plot(w, Rectangular_dtft, color='k', label='Rectangular', linewidth=1)
 plt.plot(w, Hann_dtft, '--', label='Hann', linewidth=1.5)

@@ -1,11 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Apr  8 13:59:04 2025
-
-@author: laurajorgensen
-"""
-
+# --- Importer nødvendige pakker
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -24,7 +17,7 @@ omega = np.linspace(0, np.pi, N_fft//2)
 
 w = 0.5 * (1 - np.cos(2 * np.pi * n / M))  # Hann-vindue
 
-# --- Filterfunktioner ---
+# --- Lavpas filter ---
 def lowpass_filter(f_c, f_s):
     omega_c = 2*np.pi*f_c/f_s
     h_d = np.zeros(M + 1)
@@ -38,6 +31,7 @@ def lowpass_filter(f_c, f_s):
     h = h_d * w
     return h
 
+# --- Båndpas filter ---
 def bandpass_filter(f_c_1, f_c_2, f_s):
     omega_c_1 = 2*np.pi*f_c_1/f_s
     omega_c_2 = 2*np.pi*f_c_2/f_s

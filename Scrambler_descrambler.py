@@ -1,17 +1,12 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Apr 23 17:33:24 2025
-
-@author: laurajorgensen
-"""
-
+# --- Importer nødvendige pakker ---
 import numpy as np
 from scipy.io import wavfile
 import matplotlib.pyplot as plt
 from scipy.signal import spectrogram
 import os
 from datetime import datetime
+
+# --- parametre
 
 filename = 'sentences/DT2_Danish_Speech_L6_S1.wav'
 background_noise_filename = 'Noise_fredagsbar.wav'
@@ -28,14 +23,19 @@ OUTPUT_DIR = f"F_{N}"
 #OUTPUT_DIR = f"ResultsF_{base_name}_{timestamp}"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+
+# --- Indlæs lydfil ---
 def load_data(filename):
     sample_freq, audio_data = wavfile.read(filename)
     return sample_freq, audio_data
 
+# --- Konverter signal vektor til wavfile.
 def convert_to_wav(array, output_filename, audio_data, sample_freq):
     array = np.asarray(array, dtype=audio_data.dtype) 
     wavfile.write(os.path.join(OUTPUT_DIR, output_filename), sample_freq, array)
 
+
+# --- Zeropadding på signalet ---
 def reshape(array):
     remainder = len(array) % N
     if remainder == 0:
@@ -47,6 +47,8 @@ def reshape(array):
     audio_data_matrix = audio_data.reshape(-1, N).T
     return audio_data_matrix, pad_length
 
+
+# --- Frequency scrambling af signalet ---
 def scramble(signal):
     spectrum = np.fft.fft(signal, axis=0)
     
@@ -60,6 +62,7 @@ def scramble(signal):
     return scrampled_signal, P
 
 
+# --- Inversion scramble til eksempel ---
 def reverse_scramble(signal_matrix):
     spectrum = np.fft.fft(signal_matrix, axis=0)
     reversed_spectrum = np.fft.fftshift(spectrum, axes=0)
@@ -67,6 +70,8 @@ def reverse_scramble(signal_matrix):
     return signal_out.flatten('F')
 
 
+
+# --- Frequency descrambling af signalet ---
 def descramble(scrampled_signal, P, pad_length):
     scrampled_signal_matrix = scrampled_signal.reshape(-1, N).T
     spectrum_scrampled_signal = np.fft.fft(scrampled_signal_matrix, axis=0)
@@ -80,6 +85,9 @@ def descramble(scrampled_signal, P, pad_length):
     
     return descrambled_signal
 
+
+
+# --- Tilføjelse af baggrundsstøj på lydfiler ---
 def add_background_noise(signal, noise_filename):
     sample_freq, noise = load_data(noise_filename)
     
@@ -90,6 +98,8 @@ def add_background_noise(signal, noise_filename):
 
     return signal_noisy
 
+
+# --- Lavpas filter udledt i kapitel 9 ---
 def lowpass_filter(M, f_c, f_s):
     omega_c = 2*np.pi*f_c/f_s
     h_d = np.zeros(M + 1)
@@ -105,6 +115,8 @@ def lowpass_filter(M, f_c, f_s):
     h = h_d * w
     return h
 
+
+# --- Båndpas filter udledt i kapitel 9 ---
 def bandpass_filter(M, f_c_1, f_c_2, f_s):
     omega_c_1 = 2*np.pi*f_c_1/f_s
     omega_c_2 = 2*np.pi*f_c_2/f_s
@@ -120,6 +132,7 @@ def bandpass_filter(M, f_c_1, f_c_2, f_s):
     h = h_d * w
     return h
 
+# --- Tilføjelse af hvidstøj på lydfiler ---
 def add_gaussian_noise(signal, snr_db):
     rms = np.sqrt(np.mean(signal**2))
     
@@ -133,7 +146,7 @@ def add_gaussian_noise(signal, snr_db):
     
     return noisy_signal
 
-
+# --- Plot af spectogrammer --- 
 def plot_spectrogram(signal, fs, title):
     f, t, Sxx = spectrogram(signal, fs, nperseg=N)
     plt.figure(figsize=(10, 4), dpi=400)
@@ -146,7 +159,9 @@ def plot_spectrogram(signal, fs, title):
     safe_title = title.replace(" ", "_")
     plt.savefig(os.path.join(OUTPUT_DIR, f"{safe_title}.png"))
     plt.show()
+    
 
+# --- Sammensætning af overstående funktioner til simulering af hele scrambler/descrambler systemet med tilføjelse af støj med filter ---
 def main_noisy(tal):
     sample_freq, audio_data = load_data(filename)
     audio_data_noisy = add_background_noise(audio_data, background_noise_filename)
@@ -175,6 +190,8 @@ def main_noisy(tal):
     # plot_spectrogram(descrambled_signal_noisy, sample_freq, "Descrambled signal with noise")
     plot_spectrogram(descrambled_signal_filteret, sample_freq, "Descrambled signal filtered")
     
+    
+# --- Sammensætning af overstående funktioner til simulering af hele scrambler/descrambler systemet uden tilføjet støj og uden filter---
 def main_clean(tal):
     sample_freq, audio_data = load_data(filename)
     
@@ -191,7 +208,8 @@ def main_clean(tal):
     # plot_spectrogram(scrampled_signal, sample_freq, "Scrambled signal")
     # plot_spectrogram(rev, sample_freq, "Inverse signal")
     # plot_spectrogram(descrambled_signal, sample_freq, "Descrambled signal filtered")
-    
+
+# --- Sammensætning af overstående funktioner til simulering af hele scrambler/descrambler systemet uden tilføjet støj med filter---
 def main_filter(tal):
     sample_freq, audio_data = load_data(filename)
 

@@ -9,7 +9,7 @@ T = 1      # Signal længde (sekunder)
 t = np.linspace(0, T, int(fs * T), endpoint=False)  # Tidsvektor
 
 # --- Definer signal komponenenter ---
-signal = np.cos(np.pi * 100 * t) + np.cos(2 * np.pi * 450 * t)
+signal = np.cos(2*np.pi * 100 * t) + np.cos(2 * np.pi * 450 * t)
 
 # --- Tilføj impulser (Approksimeret ved en høj værdi ved tætteste punkt) ---
 impulse_times = [0.20, 0.5, 0.8]
